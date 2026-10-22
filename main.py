@@ -1,13 +1,68 @@
 from fastapi import FastAPI, Path, HTTPException, Query
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, computed_field
+from typing import Annotated, Literal
 import json
+import os
 
 app = FastAPI()
 
+class patient(BaseModel):
+    id: Annotated[str, Field(...,description= 'Id of patient', examples=['P001'])]
+    name : Annotated[str, Field(...,description= 'name of patient')]
+    city : Annotated[str, Field(...,description= 'city where patient lives')]
+    age : Annotated[int, Field(...,gt=0, lt = 120,description= 'Age of patient')]
+    gender : Annotated[Literal['Male', 'Female', 'others'], Field(...,description= 'gender of patient')]
+    height : Annotated[float, Field(...,gt=0, description= 'height of patient')]
+    weight : Annotated[float, Field(...,gt=0, description= 'weight of patient')]
+
+    @computed_field
+    @property
+    def bmi(self)-> float:
+        bmi = round(self.weight/(self.height**2), 2)
+        return bmi
+
+    @computed_field
+    @property
+    def verdict(self)-> str:
+        if self.bmi < 18.5:
+            return 'underweight'
+        elif self.bmi <25:
+            return 'normal'
+        elif self.bmi < 30 :
+            return 'normal'
+        else:
+            return 'obessed'
+
+
 def load_data():
-    with open ('patients.json', 'r') as f:
+    with open ('patients.json', 'w') as f:
         data = json.load(f)
 
     return data
+
+def save_data(data):
+    with open('patients.json', 'r') as f:
+        data = json.load(f)
+
+
+def load_data():
+    # Create the file with an empty JSON object if it doesn't exist
+    if not os.path.exists('patients.json'):
+        with open('patients.json', 'w') as f:
+            json.dump({}, f)
+            
+    try:
+        with open('patients.json', 'r') as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        # If the file is empty or corrupted, return an empty dict
+        return {}
+
+def save_data(data):
+    with open('patients.json', 'w') as f:  # Make sure mode is 'w' (write), not 'r'
+        json.dump(data, f, indent=4)
+
 
 
 @app.get("/")
@@ -48,6 +103,22 @@ def sort_patients(sort_by : str = Query(..., description='sort on basis of heigh
     sorted_data = sorted(data.values(), key = lambda x: x.get(sort_by, 0), reverse=sort_order)
 
     return sorted_data
+
+@app.post('/create')
+def create_patient(patient : patient):
+
+    data = load_data()
+
+    if patient.id in data:
+        raise HTTPException(status_code=400, detail='patient already exist')
+
+    data[patient.id] = patient.model_dump(exclude=['id'])
+
+    save_data(data)
+
+    return JSONResponse(status_code=201, content={'messege':'patient created successfully'})
+
+
 
 
 
