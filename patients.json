@@ -1,14 +1,4 @@
 {
-    "P001": {
-        "name": "animesh",
-        "city": "amravati",
-        "age": 25,
-        "gender": "male",
-        "height": 115,
-        "weight": 115,
-        "bmi": 33.06,
-        "verdict": "Obese"
-    },
     "P002": {
         "name": "Ravi Mehta",
         "city": "Mumbai",
